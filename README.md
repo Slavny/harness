@@ -19,20 +19,20 @@
 Для запуска проекта убедитесь, что у вас установлены [Node.js](https://nodejs.org/) и [Rust](https://www.rust-lang.org/tools/install).
 
 1. Клонируйте репозиторий:
-   `ash
+```ash
    git clone https://github.com/Slavny/harness.git
    cd harness-ai-app
-   `
+```
 
 2. Установите зависимости:
-   `ash
+```ash
    npm install
-   `
+```
 
 3. Запустите приложение в режиме разработки:
-   `ash
+```ash
    npm run tauri dev
-   `
+```
 
 ## Настройка
 Для начала работы необходимо настроить API-ключ:
