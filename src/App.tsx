@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { load } from "@tauri-apps/plugin-store";
@@ -9,16 +9,46 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
+import { TitleBar } from "./components/TitleBar";
 
 function App() {
   const [apiKey, setApiKey] = useState("");
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', text: string }[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [chatHistory, setChatHistory] = useState<{ id: number, title: string, messages: any[] }[]>([]);
   const [selectedModel, setSelectedModel] = useState('GigaChat-3-Ultra');
   const [store, setStore] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState(() => localStorage.getItem('sidebarActiveTab') || 'Home');
+  const [sidebarStateReady, setSidebarStateReady] = useState(false);
+  const sidebarStateLoaded = useRef(false);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.code === 'KeyB') {
+        e.preventDefault();
+        setSidebarCollapsed(v => !v);
+      }
+      if (e.ctrlKey && e.code === 'KeyN') {
+        e.preventDefault();
+        handleNewChat();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (store && sidebarStateLoaded.current) {
+      store.set("sidebarCollapsed", sidebarCollapsed);
+      store.save();
+    }
+  }, [sidebarCollapsed, store]);
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [permissionMode, setPermissionMode] = useState('Ask When Needed');
+  const [showModeDropdown, setShowModeDropdown] = useState(false);
   const [attachments, setAttachments] = useState<{ id: string, name: string, status: 'uploading' | 'success' | 'error' }[]>([]);
 
   useEffect(() => {
@@ -34,8 +64,16 @@ function App() {
         const savedHistory = await s.get<any[]>("chatHistory");
         console.log("Store loaded, savedHistory:", savedHistory);
         if (savedHistory) setChatHistory(savedHistory);
+
+        const savedSidebarCollapsed = await s.get<boolean>("sidebarCollapsed");
+        if (savedSidebarCollapsed !== null && savedSidebarCollapsed !== undefined) {
+          setSidebarCollapsed(savedSidebarCollapsed);
+        }
+        sidebarStateLoaded.current = true;
+        setSidebarStateReady(true);
       } catch (e) {
         console.error("Store init error:", e);
+        setSidebarStateReady(true);
       }
     }
     initStore();
@@ -62,7 +100,8 @@ function App() {
     if (!prompt.trim() && attachments.filter(a => a.status === 'success').length === 0) return;
     const attachmentIds = attachments.filter(a => a.status === 'success').map(a => a.id);
     
-    const userMessage = { role: 'user' as const, text: `Прочитай приложенный файл и ответь на вопрос: ${prompt}` };
+    const userMessage = { role: 'user' as const, text: attachmentIds.length > 0 ? `Прочитай приложенный файл и ответь на вопрос: ${prompt}` : prompt };
+    const chatTitle = prompt.trim() || (attachmentIds.length > 0 ? 'Файл(ы)' : 'Новый чат');
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setPrompt("");
@@ -75,11 +114,11 @@ function App() {
       const assistantMessage = { role: 'assistant' as const, text: result as string };
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
-      saveHistory(prompt.slice(0, 20) + "...", updatedMessages);
+      saveHistory(chatTitle, updatedMessages);
     } catch (e) {
       const errorMessage = { role: 'assistant' as const, text: "Error: " + e };
       setMessages(prev => [...prev.slice(0, -1), errorMessage]);
-      saveHistory(prompt.slice(0, 20) + "...", [...newMessages, errorMessage]);
+      saveHistory(chatTitle, [...newMessages, errorMessage]);
     }
   }
 
@@ -103,33 +142,143 @@ function App() {
     }
   }
 
+  function handleNewChat() {
+    setMessages([]);
+    setPrompt("");
+    setAttachments([]);
+    setCurrentChatId(null);
+  }
+
   function handleChatSelect(id: number) {
     const chat = chatHistory.find(c => c.id === id);
     if (chat) {
       console.log("Selecting chat:", chat);
       setMessages(chat.messages);
+      setCurrentChatId(id);
     }
   }
 
   async function saveHistory(title: string, messages: any[]) {
-    if (store) {
-      const newChat = { id: Date.now(), title, messages };
-      const history = await store.get("chatHistory") || [];
-      console.log("Saving new chat:", newChat);
-      await store.set("chatHistory", [...history, newChat]);
+    if (!store) return;
+    if (currentChatId) {
+      const history = ((await store.get("chatHistory")) || []) as any[];
+      const updated = history.map((c: any) => c.id === currentChatId ? { ...c, messages } : c);
+      console.log("Updating chat:", currentChatId);
+      await store.set("chatHistory", updated);
       await store.save();
-      setChatHistory(prev => [...prev, newChat]);
+      setChatHistory(updated);
+      return;
     }
+    const newChat = { id: Date.now(), title, messages };
+    const history = ((await store.get("chatHistory")) || []) as any[];
+    console.log("Saving new chat:", newChat);
+    await store.set("chatHistory", [...history, newChat]);
+    await store.save();
+    setChatHistory(prev => [...prev, newChat]);
+    setCurrentChatId(newChat.id);
   }
 
+  const chatInput = (
+    <div className="chat-input-container">
+      <textarea
+        className="chat-textarea"
+        placeholder="Type a message..."
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+      />
+      {attachments.length > 0 && (
+          <div style={{ display: 'flex', gap: '5px', padding: '5px', background: '#222', borderRadius: '5px', marginBottom: '5px' }}>
+              {attachments.map((a, i) => (
+                  <div key={i} style={{ padding: '2px 5px', border: '1px solid #444', borderRadius: '3px', fontSize: '10px' }}>
+                      {a.name} ({a.status})
+                  </div>
+              ))}
+          </div>
+      )}
+      <div className="chat-controls">
+        <div className="left-controls">
+          <button className="plus-btn" onClick={handleFileSelect}>+</button>
+          <div className="mode-dropdown-container">
+            <button className="mode-chip" onClick={() => setShowModeDropdown(!showModeDropdown)}>
+              <span className="mode-chip-icon">✦</span>
+              {permissionMode}
+              <span className="dropdown-icon">{showModeDropdown ? '▴' : '▾'}</span>
+            </button>
+            {showModeDropdown && (
+              <div className="mode-dropdown-menu">
+                {['Ask When Needed', 'Auto', 'Plan Mode'].map(mode => (
+                  <button key={mode} className="mode-option" onClick={() => { setPermissionMode(mode); setShowModeDropdown(false); }}>
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="model-controls-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
+          <div className="model-dropdown-container">
+            <button className="model-name-trigger" onClick={() => setShowModelDropdown(!showModelDropdown)}>
+              <span className="model-name">
+                {[
+                  { id: 'GigaChat-3-Ultra', name: 'GigaChat 3 Ultra' },
+                  { id: 'GigaChat-2-Max', name: 'GigaChat 2 Max' },
+                  { id: 'GigaChat-2-Pro', name: 'GigaChat 2 Pro' },
+                  { id: 'GigaChat-2', name: 'GigaChat 2' }
+                ].find(m => m.id === selectedModel)?.name}
+              </span>
+              <span className="model-level">· High</span>
+              <span className="dropdown-icon">{showModelDropdown ? '▴' : '▾'}</span>
+            </button>
+            {showModelDropdown && (
+              <div className="model-dropdown-menu">
+                {[
+                  { id: 'GigaChat-3-Ultra', name: 'GigaChat 3 Ultra', desc: 'Новая модель для физлиц (freemium)' },
+                  { id: 'GigaChat-2-Max', name: 'GigaChat 2 Max', desc: 'Для сложных и масштабных задач' },
+                  { id: 'GigaChat-2-Pro', name: 'GigaChat 2 Pro', desc: 'Для ресурсоемких задач и инструкций' },
+                  { id: 'GigaChat-2', name: 'GigaChat 2', desc: 'Для быстрых и простых задач' }
+                ].map(model => (
+                  <div key={model.id} className="model-option">
+                    <button onClick={() => {
+                      setSelectedModel(model.id);
+                      setShowModelDropdown(false);
+                    }}>
+                      {model.name}
+                    </button>
+                    <div className="tooltip-wrapper">
+                      <span className="info-icon">ℹ️</span>
+                      <span className="tooltip-text">{model.desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <button className="send-btn-round" onClick={handleSend}>↑</button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="app-container" style={{ padding: '10px', display: 'flex', gap: '10px', height: '100vh', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <TitleBar 
+        onOpenSettings={() => setShowModal(true)} 
+        onNewChat={handleNewChat}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={() => setSidebarCollapsed(v => !v)}
+      />
+    <div className="app-container" style={{ padding: '10px', display: 'flex', gap: '10px', flex: 1, minHeight: 0, boxSizing: 'border-box' }}>
+      {sidebarStateReady && !sidebarCollapsed && (
       <Sidebar 
         onProfileClick={() => setShowModal(true)} 
         onSettingsClick={() => setShowModal(true)} 
         chatHistory={chatHistory}
         onChatSelect={handleChatSelect}
+        onNewChat={handleNewChat}
+        onTabChange={setSidebarTab}
+        activeChatId={currentChatId}
       />
+      )}
 
       <div className="main-content" style={{ 
           display: 'flex', 
@@ -148,81 +297,33 @@ function App() {
         >
           🌙
         </button>
-        <div className="response-area" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '20px', alignItems: 'center' }}>
-          {messages.map((msg, index) => (
-            <div key={index} className={`message ${msg.role}`}>
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkMath]} 
-                rehypePlugins={[rehypeKatex]}
-              >
-                {msg.text}
-              </ReactMarkdown>
+        {messages.length === 0 ? (
+          <div className="welcome-block">
+            <div className="brand-header">
+              <h1 className="brand-title">
+                ХАРНЕСС
+                {sidebarTab === 'Code' && <span className="brand-code">&lt;Code&gt;</span>}
+              </h1>
             </div>
-          ))}
-        </div>
-        <div className="chat-input-container">
-          <textarea 
-            className="chat-textarea"
-            placeholder="Write a message..." 
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
-          <div className="chat-controls">
-            <button className="plus-btn" onClick={handleFileSelect}>+</button>
-            {attachments.length > 0 && (
-                <div style={{ display: 'flex', gap: '5px', padding: '5px', background: '#222', borderRadius: '5px', marginBottom: '5px' }}>
-                    {attachments.map((a, i) => (
-                        <div key={i} style={{ padding: '2px 5px', border: '1px solid #444', borderRadius: '3px', fontSize: '10px' }}>
-                            {a.name} ({a.status})
-                        </div>
-                    ))}
-                </div>
-            )}
-            <div className="model-controls-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
-              <div className="model-dropdown-container">
-                <button className="model-name-trigger" onClick={() => setShowModelDropdown(!showModelDropdown)}>
-                  <span className="model-name">
-                    {[
-                      { id: 'GigaChat-3-Ultra', name: 'GigaChat 3 Ultra' },
-                      { id: 'GigaChat-2-Max', name: 'GigaChat 2 Max' },
-                      { id: 'GigaChat-2-Pro', name: 'GigaChat 2 Pro' },
-                      { id: 'GigaChat-2', name: 'GigaChat 2' }
-                    ].find(m => m.id === selectedModel)?.name}
-                  </span>
-                  <span className="dropdown-icon">{showModelDropdown ? '▴' : '▾'}</span>
-                </button>
-                {showModelDropdown && (
-                  <div className="model-dropdown-menu">
-                    {[
-                      { id: 'GigaChat-3-Ultra', name: 'GigaChat 3 Ultra', desc: 'Новая модель для физлиц (freemium)' },
-                      { id: 'GigaChat-2-Max', name: 'GigaChat 2 Max', desc: 'Для сложных и масштабных задач' },
-                      { id: 'GigaChat-2-Pro', name: 'GigaChat 2 Pro', desc: 'Для ресурсоемких задач и инструкций' },
-                      { id: 'GigaChat-2', name: 'GigaChat 2', desc: 'Для быстрых и простых задач' }
-                    ].map(model => (
-                      <div key={model.id} className="model-option">
-                        <button onClick={() => { 
-                          setSelectedModel(model.id); 
-                          setShowModelDropdown(false); 
-                        }}>
-                          {model.name}
-                        </button>
-                        <div className="tooltip-wrapper">
-                          <span className="info-icon">ℹ️</span>
-                          <span className="tooltip-text">{model.desc}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="voice-controls">
-                <span className="mic-icon">🎤</span>
-                <span className="bars-icon">||||</span>
-              </div>
-            </div>
-            <button className="send-btn-round" onClick={handleSend}>→</button>
+            {chatInput}
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="response-area" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', padding: '20px', alignItems: 'center' }}>
+              {messages.map((msg, index) => (
+                <div key={index} className={`message ${msg.role}`}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
+              ))}
+            </div>
+            {chatInput}
+          </>
+        )}
       </div>
       
       {showModal && (
@@ -249,6 +350,7 @@ function App() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

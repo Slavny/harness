@@ -134,6 +134,54 @@ h1 {
   cursor: pointer;
 }
 
+/* Brand header (empty chat state) */
+.welcome-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.brand-header {
+  text-align: center;
+  user-select: none;
+}
+
+.brand-title {
+  font-size: 3.2rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  background: linear-gradient(90deg, #00ff9d, #5ea2ff, #00ff9d);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 18px rgba(0, 255, 157, 0.25));
+  animation: brand-shine 6s linear infinite;
+}
+
+.brand-code {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-weight: 600;
+  letter-spacing: 0;
+  background: none;
+  -webkit-text-fill-color: #d9a04a;
+  color: #d9a04a;
+}
+
+@keyframes brand-shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
 .chat-input-container {
   padding: 15px;
   display: flex;
@@ -142,7 +190,7 @@ h1 {
   background: #1a1a1a;
   border-radius: 16px;
   border: 1px solid #333;
-  width: 70%;
+  width: 40%;
   margin: 0 auto 10px auto;
   box-sizing: border-box;
 }
@@ -175,6 +223,75 @@ h1 {
   cursor: pointer;
 }
 
+.left-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mode-dropdown-container {
+  position: relative;
+}
+
+.mode-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #d9a04a;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.mode-chip:hover {
+  background: #242424;
+}
+
+.mode-chip-icon {
+  color: #d9a04a;
+}
+
+.mode-chip .dropdown-icon {
+  color: #d9a04a;
+}
+
+.mode-dropdown-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: #202020;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 5px 0;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 10;
+}
+
+.mode-option {
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.mode-option:hover {
+  background: #333;
+}
+
+.model-level {
+  color: #5ea2ff;
+  font-weight: 600;
+}
+
 .model-controls-wrapper {
   display: flex;
   align-items: center;
@@ -189,14 +306,17 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  background: #202020;
+  gap: 6px;
+  background: transparent;
   padding: 6px 12px;
   border-radius: 20px;
-  border: 1px solid #333;
+  border: none;
   cursor: pointer;
   color: inherit;
-  width: 100%;
+}
+
+.model-name-trigger:hover {
+  background: #242424;
 }
 
 .dropdown-icon {
@@ -301,17 +421,23 @@ h1 {
 }
 
 .send-btn-round {
-  background: #00ff9d;
+  background: #3a3a3a;
   border: none;
   border-radius: 50%;
   width: 36px;
   height: 36px;
   cursor: pointer;
-  color: black;
+  color: #e0e0e0;
+  font-size: 1.1rem;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.send-btn-round:hover {
+  background: #4a4a4a;
 }
 
 input {

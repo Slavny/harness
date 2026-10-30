@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "XAPHECC",
+        "decorations": false,
         "width": 800,
         "height": 600,
         "maximized": true,

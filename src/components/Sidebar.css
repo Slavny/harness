@@ -42,6 +42,7 @@
 }
 
 .sidebar-tabs {
+  position: relative;
   display: flex;
   background: var(--sidebar-color);
   padding: 3px;
@@ -54,7 +55,20 @@
   box-sizing: border-box;
 }
 
+.tab-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: #333;
+  border-radius: 16px;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .tab {
+  position: relative;
+  z-index: 1;
   background: transparent;
   border: none;
   padding: 6px 0;
@@ -63,14 +77,27 @@
   cursor: pointer;
   flex: 1;
   font-size: 13px;
-  transition: all 0.3s ease;
+  transition: color 0.3s ease;
   text-align: center;
 }
 
 .tab.active {
-  background: #333;
   color: white;
-  transition: all 0.3s ease;
+}
+
+.tab-content-anim {
+  animation: tabContentIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes tabContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .new-btn {
@@ -87,7 +114,7 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 2px;
   margin-bottom: 20px;
 }
 
@@ -166,7 +193,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 4px 10px;
   border-radius: 8px;
   cursor: pointer;
   width: 100%;
@@ -180,4 +207,87 @@
   background: #252525;
   border: 1px solid #444;
   color: white;
+}
+
+.shortcut-hint {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-nav-item:hover .shortcut-hint {
+  opacity: 1;
+}
+
+/* Chat history list */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: #a0a0a0;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+
+.history-item::after {
+  content: attr(data-title);
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  max-width: 220px;
+  background: #000;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease, visibility 0.1s ease;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.history-item:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.15s ease 0.4s, visibility 0.15s ease 0.4s;
+}
+
+.history-item:hover,
+.history-item.active {
+  background: #252525;
+  border-color: #444;
+  color: white;
+}
+
+.history-item-icon {
+  flex-shrink: 0;
+  color: #666;
+}
+
+.history-item:hover .history-item-icon,
+.history-item.active .history-item-icon {
+  color: var(--accent-color);
+}
+
+.history-item-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
