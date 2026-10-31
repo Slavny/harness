@@ -63,6 +63,7 @@ export const Sidebar = ({
             New Session
             <span className="shortcut-hint" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: '#777', fontSize: '11px' }}>
               <kbd style={{ fontFamily: 'inherit', background: '#2a2a2a', border: '1px solid #444', borderRadius: '4px', padding: '1px 5px' }}>Ctrl</kbd>
+              <span>+</span>
               <kbd style={{ fontFamily: 'inherit', background: '#2a2a2a', border: '1px solid #444', borderRadius: '4px', padding: '1px 5px' }}>N</kbd>
             </span>
           </button>
@@ -71,6 +72,7 @@ export const Sidebar = ({
             Search
             <span className="shortcut-hint" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px', color: '#777', fontSize: '11px' }}>
               <kbd style={{ fontFamily: 'inherit', background: '#2a2a2a', border: '1px solid #444', borderRadius: '4px', padding: '1px 5px' }}>Ctrl</kbd>
+              <span>+</span>
               <kbd style={{ fontFamily: 'inherit', background: '#2a2a2a', border: '1px solid #444', borderRadius: '4px', padding: '1px 5px' }}>K</kbd>
             </span>
           </button>
