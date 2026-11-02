@@ -5,9 +5,10 @@
   color: #e0e0e0;
   display: flex;
   flex-direction: column;
-  padding: 15px 0;
-  font-family: 'Inter', sans-serif;
+  padding: 15px 0 0 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
+  letter-spacing: 0.25px;
   overflow-y: auto;
   border-radius: 12px;
   box-sizing: border-box;
@@ -152,13 +153,21 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 0;
 }
 
 .footer-item {
   cursor: pointer;
   color: #ffffff;
-  font-size: 14px;
-  padding: 5px 0;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  margin: 7.5px 15px;
+  transition: background-color 0.2s ease;
+}
+
+.footer-item:hover {
+  background-color: #202020;
 }
 
 .icon-circle {

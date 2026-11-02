@@ -20,11 +20,12 @@ interface TitleBarProps {
   onOpenSettings?: () => void;
   onNewChat?: () => void;
   onOpenFolder?: () => void;
+  onToggleTerminal?: () => void;
   sidebarCollapsed?: boolean;
   onToggleSidebar?: () => void;
 }
 
-export function TitleBar({ onOpenSettings, onNewChat, onOpenFolder, sidebarCollapsed, onToggleSidebar }: TitleBarProps) {
+export function TitleBar({ onOpenSettings, onNewChat, onOpenFolder, onToggleTerminal, sidebarCollapsed, onToggleSidebar }: TitleBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -80,7 +81,7 @@ export function TitleBar({ onOpenSettings, onNewChat, onOpenFolder, sidebarColla
         { label: "Zoom In", shortcut: "Ctrl++", action: () => (document.body.style.zoom = String((parseFloat(document.body.style.zoom || "1") + 0.1).toFixed(1))) },
         { label: "Zoom Out", shortcut: "Ctrl+-", action: () => (document.body.style.zoom = String(Math.max(0.5, parseFloat(document.body.style.zoom || "1") - 0.1).toFixed(1))) },
         { separator: true, label: "" },
-        { label: "Toggle Terminal", shortcut: "Ctrl+`", action: onToggleSidebar },
+        { label: "Toggle Terminal", shortcut: "Ctrl+`", action: onToggleTerminal },
         { separator: true, label: "" },
         { label: "Toggle Full Screen", shortcut: "F11", action: () => { void appWindow().isFullscreen().then((fullscreen) => appWindow().setFullscreen(!fullscreen)); } },
       ],
@@ -136,12 +137,12 @@ export function TitleBar({ onOpenSettings, onNewChat, onOpenFolder, sidebarColla
         onOpenSettings?.();
       } else if (event.code === "Backquote") {
         event.preventDefault();
-        onToggleSidebar?.();
+        onToggleTerminal?.();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onOpenFolder, onOpenSettings, onToggleSidebar]);
+  }, [onOpenFolder, onOpenSettings, onToggleSidebar, onToggleTerminal]);
 
   useEffect(() => {
     const closeOnOutside = (e: MouseEvent) => {
@@ -162,7 +163,12 @@ export function TitleBar({ onOpenSettings, onNewChat, onOpenFolder, sidebarColla
             <span className={`titlebar-icon-bar ${sidebarCollapsed ? "collapsed" : ""}`}></span>
           </span>
           <span className="titlebar-tooltip">
-            {sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} <kbd>Ctrl B</kbd>
+            {sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            <span className="tooltip-keys">
+              <kbd>Ctrl</kbd>
+              <span>+</span>
+              <kbd>B</kbd>
+            </span>
           </span>
         </span>
         <nav className="titlebar-menus">

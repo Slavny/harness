@@ -3,6 +3,22 @@ use reqwest::multipart;
 use tokio::fs;
 use mime_guess;
 use std::path::Path;
+use std::io::Write;
+use std::sync::Mutex;
+use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
+use tauri::{AppHandle, Emitter, State};
+
+struct TerminalState {
+    writer: Mutex<Option<Box<dyn Write + Send>>>,
+    child: Mutex<Option<Box<dyn Child + Send>>>,
+    master: Mutex<Option<Box<dyn MasterPty + Send>>>,
+}
+
+impl Default for TerminalState {
+    fn default() -> Self {
+        Self { writer: Mutex::new(None), child: Mutex::new(None), master: Mutex::new(None) }
+    }
+}
 
 #[derive(Serialize, Deserialize)]
 struct ChatRequest {
@@ -123,13 +139,97 @@ async fn upload_file(api_key: String, file_path: String) -> Result<String, Strin
     }
 }
 
+/// Starts an interactive PowerShell process and streams its output to the frontend.
+#[tauri::command]
+fn start_terminal(app: AppHandle, state: State<'_, TerminalState>) -> Result<(), String> {
+    close_terminal_inner(&state)?;
+
+    let pty_system = native_pty_system();
+    let pair = pty_system
+        .openpty(PtySize { rows: 30, cols: 120, pixel_width: 0, pixel_height: 0 })
+        .map_err(|error| error.to_string())?;
+
+    let mut command;
+    if cfg!(target_os = "windows") {
+        command = CommandBuilder::new("powershell.exe");
+        command.arg("-NoLogo");
+        command.arg("-NoProfile");
+        command.arg("-ExecutionPolicy");
+        command.arg("Bypass");
+    } else {
+        command = CommandBuilder::new("bash");
+    }
+
+    let child = pair.slave.spawn_command(command).map_err(|error| error.to_string())?;
+    *state.child.lock().map_err(|error| error.to_string())? = Some(child);
+    let mut reader = pair.master.try_clone_reader().map_err(|error| error.to_string())?;
+    let writer = pair.master.take_writer().map_err(|error| error.to_string())?;
+    *state.writer.lock().map_err(|error| error.to_string())? = Some(writer);
+    *state.master.lock().map_err(|error| error.to_string())? = Some(pair.master);
+
+    std::thread::spawn(move || {
+        let mut buffer = [0_u8; 4096];
+        loop {
+            match std::io::Read::read(&mut reader, &mut buffer) {
+                Ok(0) => break,
+                Err(error) => {
+                    let _ = app.emit("terminal-output", format!("\r\n[PTY read error: {error}]\r\n"));
+                    break;
+                }
+                Ok(size) => {
+                    let output = String::from_utf8_lossy(&buffer[..size]).to_string();
+                    let _ = app.emit("terminal-output", output);
+                }
+            }
+        }
+        let _ = app.emit("terminal-exited", ());
+    });
+
+    Ok(())
+}
+
+#[tauri::command]
+fn write_terminal(input: String, state: State<'_, TerminalState>) -> Result<(), String> {
+    let mut writer = state.writer.lock().map_err(|error| error.to_string())?;
+    let writer = writer.as_mut().ok_or("Terminal is not running")?;
+    writer.write_all(input.as_bytes()).map_err(|error| error.to_string())?;
+    writer.flush().map_err(|error| error.to_string())
+}
+
+fn close_terminal_inner(state: &State<'_, TerminalState>) -> Result<(), String> {
+    let mut writer = state.writer.lock().map_err(|error| error.to_string())?;
+    *writer = None;
+    if let Some(mut child) = state.child.lock().map_err(|error| error.to_string())?.take() {
+        let _ = child.kill();
+    }
+    *state.master.lock().map_err(|error| error.to_string())? = None;
+    Ok(())
+}
+
+#[tauri::command]
+fn close_terminal(state: State<'_, TerminalState>) -> Result<(), String> {
+    close_terminal_inner(&state)
+}
+
+/// Updates the shell's terminal dimensions after the frontend is resized.
+#[tauri::command]
+fn resize_terminal(rows: u16, cols: u16, state: State<'_, TerminalState>) -> Result<(), String> {
+    let master = state.master.lock().map_err(|error| error.to_string())?;
+    if let Some(master) = master.as_ref() {
+        master.resize(PtySize { rows: rows.max(1), cols: cols.max(1), pixel_width: 0, pixel_height: 0 })
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(TerminalState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![ask_gigachat, upload_file])
+        .invoke_handler(tauri::generate_handler![ask_gigachat, upload_file, start_terminal, write_terminal, close_terminal, resize_terminal])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

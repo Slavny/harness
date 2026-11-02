@@ -57,6 +57,14 @@
   padding: 1px 5px;
 }
 
+.tooltip-keys {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #777;
+  font-size: 11px;
+}
+
 .titlebar-icon:hover .titlebar-tooltip {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
