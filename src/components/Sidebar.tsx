@@ -1,22 +1,62 @@
 import React from 'react';
 import './Sidebar.css';
 
+export interface WorkspaceFolder {
+  name: string;
+  path: string;
+  addedAt?: number;
+}
+
+export interface CodeSession {
+  id: number;
+  title: string;
+  messages: any[];
+  folderPath?: string;
+  folderName?: string;
+  timestamp?: number;
+}
+
+function getRelativeTime(timestamp?: number): string {
+  if (!timestamp) return '';
+  const now = Date.now();
+  const diffSec = Math.floor((now - timestamp) / 1000);
+  if (diffSec < 60) return 'now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays}d`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `${diffMonths}mo`;
+}
+
 export const Sidebar = ({ 
   onProfileClick, 
   onSettingsClick,
   chatHistory,
+  codeSessions = [],
   onChatSelect,
+  onCodeSessionSelect,
   onNewChat,
   onTabChange,
-  activeChatId
+  activeChatId,
+  workspaceFolders = [],
+  selectedFolder = null,
+  onSelectFolder = () => {}
 }: { 
   onProfileClick: () => void, 
   onSettingsClick: () => void,
   chatHistory: { id: number, title: string, messages: any[] }[],
+  codeSessions?: CodeSession[],
   onChatSelect: (id: number) => void,
+  onCodeSessionSelect?: (id: number) => void,
   onNewChat: () => void,
   onTabChange: (tab: string) => void,
-  activeChatId: number | null
+  activeChatId: number | null,
+  workspaceFolders?: WorkspaceFolder[],
+  selectedFolder?: WorkspaceFolder | null,
+  onSelectFolder?: (folder: WorkspaceFolder) => void
 }) => {
   const [activeTab, setActiveTab] = React.useState(() => localStorage.getItem('sidebarActiveTab') || 'Home');
   const [activeNavItem, setActiveNavItem] = React.useState('New');
@@ -76,12 +116,63 @@ export const Sidebar = ({
               <kbd style={{ fontFamily: 'inherit', background: '#2a2a2a', border: '1px solid #444', borderRadius: '4px', padding: '1px 5px' }}>K</kbd>
             </span>
           </button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', padding: '0 10px', color: '#666', fontSize: '11px', letterSpacing: '1px' }}>
-            SESSIONS
-            <span style={{ display: 'flex', gap: '8px' }}>
-              <button className="sidebar-btn" onClick={() => console.log('Expand sessions')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></button>
-              <button className="sidebar-btn" onClick={() => console.log('Sessions options')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg></button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', marginBottom: '4px', padding: '0 8px', color: '#666', fontSize: '11px', letterSpacing: '1px', fontWeight: 600 }}>
+            <span>SESSIONS</span>
+            <span style={{ display: 'flex', gap: '6px' }}>
+              <button className="sidebar-btn" title="New Session" type="button" onClick={(e) => { e.stopPropagation(); onNewChat(); }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button className="sidebar-btn" title="Options" type="button" onClick={(e) => { e.stopPropagation(); }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+              </button>
             </span>
+          </div>
+
+          <div className="sidebar-sessions-list">
+            {workspaceFolders.map(folder => {
+              const isSelected = selectedFolder?.path ? selectedFolder.path.toLowerCase() === folder.path.toLowerCase() : selectedFolder?.name === folder.name;
+              const folderSessions = (codeSessions || []).filter(session => {
+                if (session.folderPath) {
+                  return session.folderPath.toLowerCase() === folder.path.toLowerCase();
+                }
+                return session.folderName === folder.name;
+              });
+
+              return (
+                <div key={folder.path || folder.name} className="sidebar-folder-group">
+                  <div
+                    className={`sidebar-folder-item ${isSelected ? 'active' : ''}`}
+                    onClick={() => onSelectFolder?.(folder)}
+                  >
+                    <span className="sidebar-folder-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                      </svg>
+                    </span>
+                    <span className="sidebar-folder-name" title={folder.path}>{folder.name}</span>
+                  </div>
+
+                  <div className="sidebar-folder-content">
+                    {folderSessions.length > 0 ? (
+                      folderSessions.map(session => (
+                        <div
+                          key={session.id}
+                          className={`sidebar-session-row ${activeChatId === session.id ? 'active' : ''}`}
+                          onClick={() => onCodeSessionSelect ? onCodeSessionSelect(session.id) : onChatSelect(session.id)}
+                        >
+                          <span className="sidebar-session-title" title={session.title}>{session.title}</span>
+                          <span className="sidebar-session-time">{getRelativeTime(session.timestamp || session.id)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="sidebar-folder-empty">
+                        No conversations yet
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </nav>
         ) : (

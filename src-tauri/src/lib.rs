@@ -55,16 +55,20 @@ async fn get_access_token(client: &reqwest::Client, api_key: &str) -> Result<Str
         .await
         .map_err(|e| e.to_string())?;
 
-    token_resp["access_token"]
-        .as_str()
-        .map(|s| s.to_string())
-        .ok_or("Failed to get token".to_string())
+    if let Some(token) = token_resp["access_token"].as_str() {
+        Ok(token.to_string())
+    } else if let Some(msg) = token_resp["message"].as_str() {
+        Err(format!("GigaChat OAuth error: {}", msg))
+    } else {
+        Err(format!("Failed to get token: {:?}", token_resp))
+    }
 }
 
 #[tauri::command]
 async fn ask_gigachat(api_key: String, messages: Vec<Message>, model: String, attachments: Option<Vec<String>>) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .no_proxy()
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -99,6 +103,7 @@ async fn ask_gigachat(api_key: String, messages: Vec<Message>, model: String, at
 async fn upload_file(api_key: String, file_path: String) -> Result<String, String> {
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
+        .no_proxy()
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -222,14 +227,20 @@ fn resize_terminal(rows: u16, cols: u16, state: State<'_, TerminalState>) -> Res
     Ok(())
 }
 
+#[tauri::command]
+fn get_user_home_dir() -> Result<String, String> {
+    std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+
 pub fn run() {
     tauri::Builder::default()
         .manage(TerminalState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![ask_gigachat, upload_file, start_terminal, write_terminal, close_terminal, resize_terminal])
+        .invoke_handler(tauri::generate_handler![ask_gigachat, upload_file, start_terminal, write_terminal, close_terminal, resize_terminal, get_user_home_dir])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

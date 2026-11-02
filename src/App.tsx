@@ -128,10 +128,70 @@ function ShieldAlertIcon() {
   );
 }
 
-function CheckIcon() {
+function CheckIcon({ color = "#3b82f6", size = 16 }: { color?: string; size?: number }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function CheckmarkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e4e4e7" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function FolderOutlineIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+
+function FolderAddOutlineIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+      <line x1="12" y1="10" x2="12" y2="16" />
+      <line x1="9" y1="13" x2="15" y2="13" />
+    </svg>
+  );
+}
+
+function ChevronDownSmallIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function ChevronUpSmallIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  );
+}
+
+function CloseSmallIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function FileOutlineSmallIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
     </svg>
   );
 }
@@ -234,12 +294,39 @@ const PERMISSION_MODES = [
   },
 ];
 
+interface WorkspaceFolder {
+  name: string;
+  path: string;
+  addedAt?: number;
+}
+
+export interface CodeSession {
+  id: number;
+  title: string;
+  messages: { role: 'user' | 'assistant'; text: string }[];
+  folderPath?: string;
+  folderName?: string;
+  timestamp: number;
+}
+
 function App() {
   const [apiKey, setApiKey] = useState("");
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant', text: string }[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [chatHistory, setChatHistory] = useState<{ id: number, title: string, messages: any[] }[]>([]);
+  const [codeSessions, setCodeSessions] = useState<CodeSession[]>(() => {
+    const saved = localStorage.getItem('codeSessions');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // ignore
+      }
+    }
+    return [];
+  });
   const [selectedModel, setSelectedModel] = useState('GigaChat-3-Ultra');
   const [store, setStore] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
@@ -329,7 +416,124 @@ function App() {
   const sidebarStateLoaded = useRef(false);
 
   useEffect(() => {
+    if (store && sidebarStateLoaded.current) {
+      store.set("sidebarCollapsed", sidebarCollapsed);
+      store.save();
+    }
+  }, [sidebarCollapsed, store]);
+
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [permissionMode, setPermissionMode] = useState('Ask When Needed');
+  const [showModeDropdown, setShowModeDropdown] = useState(false);
+  const [showNewTabMenu, setShowNewTabMenu] = useState(false);
+  const modeDropdownRef = useRef<HTMLDivElement>(null);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const newTabMenuRef = useRef<HTMLDivElement>(null);
+
+  const [selectedFolder, setSelectedFolder] = useState<WorkspaceFolder | null>(() => {
+    const saved = localStorage.getItem('selectedWorkspaceFolder');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  const [recentFolders, setRecentFolders] = useState<WorkspaceFolder[]>(() => {
+    const saved = localStorage.getItem('recentWorkspaceFolders');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && !parsed.some(f => f.name === 'AiBattleGrounds')) {
+          return parsed;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return [];
+  });
+
+  const [trustedFolders, setTrustedFolders] = useState<string[]>(() => {
+    const saved = localStorage.getItem('trustedWorkspaceFolders');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // fallback
+      }
+    }
+    return [];
+  });
+
+  const [trustModalFolder, setTrustModalFolder] = useState<WorkspaceFolder | null>(null);
+  const trustModalFolderRef = useRef<WorkspaceFolder | null>(null);
+  trustModalFolderRef.current = trustModalFolder;
+
+  const [showFolderDropdown, setShowFolderDropdown] = useState(false);
+  const folderDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    async function loadUserHomeFolder() {
+      try {
+        const homePath = await invoke<string>("get_user_home_dir");
+        if (homePath) {
+          const normalized = homePath.replace(/\\/g, '/');
+          const parts = normalized.split('/').filter(Boolean);
+          const name = parts[parts.length - 1] || 'Home';
+          const userFolder: WorkspaceFolder = { name, path: homePath };
+
+          setRecentFolders(prev => {
+            const hasLegacy = prev.some(f => f.name === 'AiBattleGrounds');
+            if (prev.length === 0 || hasLegacy) {
+              const baseUserFolder = { ...userFolder, addedAt: 0 };
+              localStorage.setItem('recentWorkspaceFolders', JSON.stringify([baseUserFolder]));
+              return [baseUserFolder];
+            }
+            const exists = prev.some(f => f.path.toLowerCase() === userFolder.path.toLowerCase());
+            if (!exists) {
+              const baseUserFolder = { ...userFolder, addedAt: 0 };
+              const updated = [...prev, baseUserFolder];
+              localStorage.setItem('recentWorkspaceFolders', JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        console.warn("Could not retrieve user home dir:", e);
+        setRecentFolders(prev => {
+          const hasLegacy = prev.some(f => f.name === 'AiBattleGrounds');
+          if (prev.length === 0 || hasLegacy) {
+            const fallback: WorkspaceFolder[] = [{ name: 'User', path: 'C:/Users/User' }];
+            localStorage.setItem('recentWorkspaceFolders', JSON.stringify(fallback));
+            return fallback;
+          }
+          return prev;
+        });
+      }
+    }
+    loadUserHomeFolder();
+  }, []);
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (trustModalFolderRef.current) {
+        if (e.key === 'Enter' || e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
+          handleConfirmTrust();
+          return;
+        }
+        if (e.key === 'Escape' || e.key === 'b' || e.key === 'B') {
+          e.preventDefault();
+          handleRejectTrust();
+          return;
+        }
+      }
       if ((e.ctrlKey && e.shiftKey && e.code === 'KeyB') || (e.ctrlKey && e.altKey && e.code === 'KeyB')) {
         e.preventDefault();
         setShowRightPanel(v => !v);
@@ -339,6 +543,7 @@ function App() {
       }
       if (e.key === 'Escape') {
         setShowNewTabMenu(false);
+        setShowFolderDropdown(false);
       }
       if (e.ctrlKey && e.code === 'KeyN') {
         e.preventDefault();
@@ -347,21 +552,7 @@ function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  useEffect(() => {
-    if (store && sidebarStateLoaded.current) {
-      store.set("sidebarCollapsed", sidebarCollapsed);
-      store.save();
-    }
-  }, [sidebarCollapsed, store]);
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [permissionMode, setPermissionMode] = useState('Ask When Needed');
-  const [showModeDropdown, setShowModeDropdown] = useState(false);
-  const [showNewTabMenu, setShowNewTabMenu] = useState(false);
-  const modeDropdownRef = useRef<HTMLDivElement>(null);
-  const modelDropdownRef = useRef<HTMLDivElement>(null);
-  const newTabMenuRef = useRef<HTMLDivElement>(null);
+  }, [trustedFolders]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -373,6 +564,9 @@ function App() {
       }
       if (newTabMenuRef.current && !newTabMenuRef.current.contains(event.target as Node)) {
         setShowNewTabMenu(false);
+      }
+      if (folderDropdownRef.current && !folderDropdownRef.current.contains(event.target as Node)) {
+        setShowFolderDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -397,6 +591,11 @@ function App() {
         const savedHistory = await s.get<any[]>("chatHistory");
         console.log("Store loaded, savedHistory:", savedHistory);
         if (savedHistory) setChatHistory(savedHistory);
+
+        const savedCodeSessions = await s.get<CodeSession[]>("codeSessions");
+        if (savedCodeSessions && Array.isArray(savedCodeSessions)) {
+          setCodeSessions(savedCodeSessions);
+        }
 
         const savedSidebarCollapsed = await s.get<boolean>("sidebarCollapsed");
         if (savedSidebarCollapsed !== null && savedSidebarCollapsed !== undefined) {
@@ -447,11 +646,20 @@ function App() {
       const assistantMessage = { role: 'assistant' as const, text: result as string };
       const updatedMessages = [...newMessages, assistantMessage];
       setMessages(updatedMessages);
-      saveHistory(chatTitle, updatedMessages);
+      if (sidebarTab === 'Code') {
+        await saveCodeSession(chatTitle, updatedMessages);
+      } else {
+        await saveHistory(chatTitle, updatedMessages);
+      }
     } catch (e) {
       const errorMessage = { role: 'assistant' as const, text: "Error: " + e };
+      const failedMessages = [...newMessages, errorMessage];
       setMessages(prev => [...prev.slice(0, -1), errorMessage]);
-      saveHistory(chatTitle, [...newMessages, errorMessage]);
+      if (sidebarTab === 'Code') {
+        await saveCodeSession(chatTitle, failedMessages);
+      } else {
+        await saveHistory(chatTitle, failedMessages);
+      }
     }
   }
 
@@ -475,11 +683,124 @@ function App() {
     }
   }
 
+  function handleRemoveAttachment(indexToRemove: number) {
+    setAttachments(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  }
+
+  function isFolderTrusted(path: string): boolean {
+    if (!path) return false;
+    const norm = path.replace(/\\/g, '/').toLowerCase();
+    return trustedFolders.includes(norm);
+  }
+
+  function commitSelectFolder(folder: WorkspaceFolder) {
+    setSelectedFolder(folder);
+    localStorage.setItem('selectedWorkspaceFolder', JSON.stringify(folder));
+
+    setRecentFolders(prev => {
+      const exists = prev.some(f => f.path.toLowerCase() === folder.path.toLowerCase());
+      if (exists) {
+        // Keep order completely static when clicking an existing folder
+        return prev;
+      }
+      // New folder is added at the top (newest on top, oldest at the bottom)
+      const newFolderItem: WorkspaceFolder = {
+        ...folder,
+        addedAt: Date.now(),
+      };
+      const updated = [newFolderItem, ...prev].slice(0, 20);
+      localStorage.setItem('recentWorkspaceFolders', JSON.stringify(updated));
+      return updated;
+    });
+    setShowFolderDropdown(false);
+  }
+
+  function handleSelectFolder(folder: WorkspaceFolder) {
+    if (selectedFolder?.path === folder.path) {
+      commitSelectFolder(folder);
+      return;
+    }
+
+    if (!isFolderTrusted(folder.path)) {
+      setShowFolderDropdown(false);
+      setTrustModalFolder(folder);
+    } else {
+      commitSelectFolder(folder);
+    }
+  }
+
+  function handleConfirmTrust() {
+    const folder = trustModalFolderRef.current;
+    if (!folder) return;
+    const norm = folder.path.replace(/\\/g, '/').toLowerCase();
+    const updated = Array.from(new Set([...trustedFolders, norm]));
+    setTrustedFolders(updated);
+    localStorage.setItem('trustedWorkspaceFolders', JSON.stringify(updated));
+
+    commitSelectFolder(folder);
+    setTrustModalFolder(null);
+  }
+
+  function handleRejectTrust() {
+    setTrustModalFolder(null);
+  }
+
+  async function handleChooseFolderClick() {
+    setShowFolderDropdown(false);
+    try {
+      const selected = await open({
+        directory: true,
+        multiple: false,
+        title: "Choose folder",
+      });
+      if (selected && typeof selected === 'string') {
+        const fullPath = selected;
+        const normalized = fullPath.replace(/\\/g, '/');
+        const parts = normalized.split('/').filter(Boolean);
+        const name = parts[parts.length - 1] || fullPath;
+        const newFolder: WorkspaceFolder = { name, path: fullPath };
+
+        if (!isFolderTrusted(fullPath)) {
+          setTrustModalFolder(newFolder);
+        } else {
+          commitSelectFolder(newFolder);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to choose folder with dialog:", error);
+      const fallback = window.prompt("Enter folder path (e.g. E:\\my-project):");
+      if (fallback && fallback.trim()) {
+        const fullPath = fallback.trim();
+        const normalized = fullPath.replace(/\\/g, '/');
+        const parts = normalized.split('/').filter(Boolean);
+        const name = parts[parts.length - 1] || fullPath;
+        const newFolder: WorkspaceFolder = { name, path: fullPath };
+
+        if (!isFolderTrusted(fullPath)) {
+          setTrustModalFolder(newFolder);
+        } else {
+          commitSelectFolder(newFolder);
+        }
+      }
+    }
+  }
+
   async function handleOpenFolder() {
     try {
-      const selectedFolder = await open({ directory: true, multiple: false });
-      if (selectedFolder) {
-        setPrompt(selectedFolder);
+      const selectedFolderResult = await open({ directory: true, multiple: false });
+      if (selectedFolderResult && typeof selectedFolderResult === 'string') {
+        const fullPath = selectedFolderResult;
+        const normalized = fullPath.replace(/\\/g, '/');
+        const parts = normalized.split('/').filter(Boolean);
+        const name = parts[parts.length - 1] || fullPath;
+        const newFolder: WorkspaceFolder = { name, path: fullPath };
+
+        if (!isFolderTrusted(fullPath)) {
+          setTrustModalFolder(newFolder);
+        } else {
+          commitSelectFolder(newFolder);
+        }
+        setPrompt(fullPath);
       }
     } catch (error) {
       console.error("Failed to open folder:", error);
@@ -504,14 +825,48 @@ function App() {
     if (tab !== 'Code') {
       setShowTerminal(false);
     }
+    setMessages([]);
+    setPrompt("");
+    setAttachments([]);
+    setCurrentChatId(null);
+  }
+
+  function handleSelectFolderFromSidebar(folder: WorkspaceFolder) {
+    if (selectedFolder?.path === folder.path) return;
+    if (!isFolderTrusted(folder.path)) {
+      setTrustModalFolder(folder);
+    } else {
+      commitSelectFolder(folder);
+      handleNewChat();
+    }
   }
 
   function handleChatSelect(id: number) {
     const chat = chatHistory.find(c => c.id === id);
     if (chat) {
-      console.log("Selecting chat:", chat);
+      console.log("Selecting home chat:", chat);
       setMessages(chat.messages);
       setCurrentChatId(id);
+    }
+  }
+
+  function handleCodeSessionSelect(id: number) {
+    const session = codeSessions.find(s => s.id === id);
+    if (session) {
+      console.log("Selecting code session:", session);
+      setMessages(session.messages);
+      setCurrentChatId(id);
+      if (session.folderPath) {
+        const matching = recentFolders.find(f => f.path.toLowerCase() === session.folderPath!.toLowerCase());
+        if (matching) {
+          setSelectedFolder(matching);
+          localStorage.setItem('selectedWorkspaceFolder', JSON.stringify(matching));
+        } else if (session.folderName) {
+          const folderObj = { name: session.folderName, path: session.folderPath };
+          setSelectedFolder(folderObj);
+          localStorage.setItem('selectedWorkspaceFolder', JSON.stringify(folderObj));
+        }
+      }
     }
   }
 
@@ -519,21 +874,73 @@ function App() {
     if (!store) return;
     if (currentChatId) {
       const history = ((await store.get("chatHistory")) || []) as any[];
-      const updated = history.map((c: any) => c.id === currentChatId ? { ...c, messages } : c);
-      console.log("Updating chat:", currentChatId);
+      const updated = history.map((c: any) => c.id === currentChatId ? {
+        ...c,
+        messages,
+        title: title || c.title,
+      } : c);
+      console.log("Updating home chat:", currentChatId);
       await store.set("chatHistory", updated);
       await store.save();
       setChatHistory(updated);
       return;
     }
-    const newChat = { id: Date.now(), title, messages };
+    const newChat = {
+      id: Date.now(),
+      title,
+      messages,
+    };
     const history = ((await store.get("chatHistory")) || []) as any[];
-    console.log("Saving new chat:", newChat);
+    console.log("Saving new home chat:", newChat);
     await store.set("chatHistory", [...history, newChat]);
     await store.save();
     setChatHistory(prev => [...prev, newChat]);
     setCurrentChatId(newChat.id);
   }
+
+  async function saveCodeSession(title: string, messages: any[]) {
+    const targetFolder = selectedFolder || (recentFolders.length > 0 ? recentFolders[0] : null);
+    const folderPath = targetFolder?.path || '';
+    const folderName = targetFolder?.name || 'Workspace';
+
+    if (currentChatId) {
+      const updated = codeSessions.map(s => s.id === currentChatId ? {
+        ...s,
+        messages,
+        title: title || s.title,
+        folderPath: s.folderPath || folderPath,
+        folderName: s.folderName || folderName,
+        timestamp: Date.now(),
+      } : s);
+      setCodeSessions(updated);
+      localStorage.setItem('codeSessions', JSON.stringify(updated));
+      if (store) {
+        await store.set("codeSessions", updated);
+        await store.save();
+      }
+      return;
+    }
+
+    const newSession: CodeSession = {
+      id: Date.now(),
+      title,
+      messages,
+      folderPath,
+      folderName,
+      timestamp: Date.now(),
+    };
+
+    const updated = [newSession, ...codeSessions];
+    setCodeSessions(updated);
+    localStorage.setItem('codeSessions', JSON.stringify(updated));
+    if (store) {
+      await store.set("codeSessions", updated);
+      await store.save();
+    }
+    setCurrentChatId(newSession.id);
+  }
+
+  const hasInput = prompt.trim().length > 0 || attachments.length > 0;
 
   const chatInput = (
     <div className="chat-input-container">
@@ -542,12 +949,40 @@ function App() {
         placeholder="Type a message..."
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+          }
+        }}
       />
       {attachments.length > 0 && (
-        <div style={{ display: 'flex', gap: '5px', padding: '5px', background: '#222', borderRadius: '5px', marginBottom: '5px' }}>
+        <div className="chat-attachments-list">
           {attachments.map((a, i) => (
-            <div key={i} style={{ padding: '2px 5px', border: '1px solid #444', borderRadius: '3px', fontSize: '10px' }}>
-              {a.name} ({a.status})
+            <div key={i} className="chat-attachment-chip">
+              <span className="attachment-chip-icon">
+                <FileOutlineSmallIcon />
+              </span>
+              <span className="attachment-chip-name" title={a.name}>
+                {a.name}
+              </span>
+              {a.status === 'uploading' && (
+                <span className="attachment-chip-status uploading">(uploading...)</span>
+              )}
+              {a.status === 'error' && (
+                <span className="attachment-chip-status error">(error)</span>
+              )}
+              <button
+                className="attachment-chip-remove"
+                type="button"
+                title="Remove file"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveAttachment(i);
+                }}
+              >
+                <CloseSmallIcon />
+              </button>
             </div>
           ))}
         </div>
@@ -646,7 +1081,15 @@ function App() {
               </div>
             )}
           </div>
-          <button className="send-btn-round" onClick={handleSend}>↑</button>
+          <button
+            className={`send-btn-round ${hasInput ? 'active' : ''}`}
+            onClick={handleSend}
+            disabled={!hasInput}
+            type="button"
+            title="Send"
+          >
+            ↑
+          </button>
         </div>
       </div>
     </div>
@@ -668,10 +1111,15 @@ function App() {
             onProfileClick={() => setShowModal(true)}
             onSettingsClick={() => setShowModal(true)}
             chatHistory={chatHistory}
+            codeSessions={codeSessions}
             onChatSelect={handleChatSelect}
+            onCodeSessionSelect={handleCodeSessionSelect}
             onNewChat={handleNewChat}
             onTabChange={handleSidebarTabChange}
             activeChatId={currentChatId}
+            workspaceFolders={recentFolders}
+            selectedFolder={selectedFolder}
+            onSelectFolder={handleSelectFolderFromSidebar}
           />
         )}
 
@@ -746,7 +1194,69 @@ function App() {
                 </h1>
               </div>
               <div className="chat-input-wrapper">
-                {chatInput}
+                <div className="welcome-input-column">
+                  <div className="folder-selector-container" ref={folderDropdownRef}>
+                    <button
+                      className={`folder-selector-btn ${showFolderDropdown ? 'active' : ''}`}
+                      onClick={() => setShowFolderDropdown(v => !v)}
+                      type="button"
+                    >
+                      <span className="folder-selector-icon">
+                        <FolderOutlineIcon />
+                      </span>
+                      <span className="folder-selector-name">
+                        {selectedFolder ? selectedFolder.name : "Choose folder"}
+                      </span>
+                      <span className="folder-selector-chevron">
+                        {showFolderDropdown ? <ChevronUpSmallIcon /> : <ChevronDownSmallIcon />}
+                      </span>
+                    </button>
+
+                    {showFolderDropdown && (
+                      <div className="folder-dropdown-menu">
+                        <div className="folder-dropdown-header">Recent folders</div>
+                        <div className="folder-dropdown-list">
+                          {recentFolders.map((folder, idx) => {
+                            const isSelected = selectedFolder?.path === folder.path;
+                            return (
+                              <button
+                                key={folder.path || idx}
+                                className={`folder-dropdown-item ${isSelected ? 'selected' : ''}`}
+                                type="button"
+                                onClick={() => handleSelectFolder(folder)}
+                              >
+                                <span className="folder-item-icon">
+                                  <FolderOutlineIcon />
+                                </span>
+                                <div className="folder-item-info">
+                                  <div className="folder-item-name">{folder.name}</div>
+                                  <div className="folder-item-path" title={folder.path}>{folder.path}</div>
+                                </div>
+                                {isSelected && (
+                                  <span className="folder-item-check">
+                                    <CheckmarkIcon />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="folder-dropdown-divider" />
+                        <button
+                          className="folder-dropdown-action"
+                          type="button"
+                          onClick={handleChooseFolderClick}
+                        >
+                          <span className="folder-action-icon">
+                            <FolderAddOutlineIcon />
+                          </span>
+                          <span className="folder-action-text">Choose folder...</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {chatInput}
+                </div>
               </div>
             </div>
           ) : (
@@ -1087,6 +1597,40 @@ function App() {
                 style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#202020', color: 'white', border: '1px solid #333', boxSizing: 'border-box' }}
               />
               <button onClick={() => setShowModal(false)} style={{ width: '100%', padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Закрыть</button>
+            </div>
+          </div>
+        )}
+
+        {trustModalFolder && (
+          <div className="modal-overlay" onClick={handleRejectTrust}>
+            <div className="trust-modal-card" onClick={e => e.stopPropagation()}>
+              <h2 className="trust-modal-title">Trust this workspace</h2>
+              <p className="trust-modal-body">
+                Until trusted, you can't send messages in this workspace, and project-level configurations such as agent instructions and MCP config stay disabled. These files can direct ХАРНЕСС to run commands, so make sure you trust their authors. After trusting, tool calls still ask for your approval one by one, and trust is remembered for future config changes.
+              </p>
+              <div className="trust-modal-options">
+                <button
+                  className="trust-option-btn primary"
+                  type="button"
+                  onClick={handleConfirmTrust}
+                >
+                  <div className="trust-option-label">
+                    <span className="trust-option-letter">A.</span>
+                    <span>Trust workspace</span>
+                  </div>
+                  <kbd className="trust-option-badge">^↵</kbd>
+                </button>
+                <button
+                  className="trust-option-btn secondary"
+                  type="button"
+                  onClick={handleRejectTrust}
+                >
+                  <div className="trust-option-label">
+                    <span className="trust-option-letter">B.</span>
+                    <span>Reject</span>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         )}
