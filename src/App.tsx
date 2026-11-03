@@ -9,6 +9,7 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
+import { AgentChat } from "./components/AgentChat";
 import { TitleBar } from "./components/TitleBar";
 import { listen } from "@tauri-apps/api/event";
 import { Terminal } from "@xterm/xterm";
@@ -228,14 +229,8 @@ function BrowserIcon() {
   );
 }
 
-function TerminalPromptIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="4 17 10 11 4 5" />
-      <line x1="12" y1="19" x2="20" y2="19" />
-    </svg>
-  );
-}
+
+
 
 function FolderIcon() {
   return (
@@ -423,7 +418,13 @@ function App() {
   }, [sidebarCollapsed, store]);
 
   const [showModelDropdown, setShowModelDropdown] = useState(false);
-  const [permissionMode, setPermissionMode] = useState('Ask When Needed');
+  const [permissionMode, setPermissionMode] = useState<string>(() => {
+    return localStorage.getItem('permission_mode') || 'Never Ask';
+  });
+  const [spentTokens, setSpentTokens] = useState<number>(() => {
+    const saved = localStorage.getItem('agent_spent_tokens');
+    return saved ? parseInt(saved, 10) || 0 : 0;
+  });
   const [showModeDropdown, setShowModeDropdown] = useState(false);
   const [showNewTabMenu, setShowNewTabMenu] = useState(false);
   const modeDropdownRef = useRef<HTMLDivElement>(null);
@@ -572,6 +573,28 @@ function App() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Слушаем реальный расход токенов агентом
+  useEffect(() => {
+    let unlistenTokens: (() => void) | undefined;
+    let unlistenDone: (() => void) | undefined;
+
+    void listen<{ total_tokens: number }>("agent-tokens", e => {
+      setSpentTokens(e.payload.total_tokens);
+      localStorage.setItem('agent_spent_tokens', String(e.payload.total_tokens));
+    }).then(fn => { unlistenTokens = fn; });
+
+    void listen<{ input_tokens: number; output_tokens: number }>("agent-done", e => {
+      const total = e.payload.input_tokens + e.payload.output_tokens;
+      setSpentTokens(total);
+      localStorage.setItem('agent_spent_tokens', String(total));
+    }).then(fn => { unlistenDone = fn; });
+
+    return () => {
+      unlistenTokens?.();
+      unlistenDone?.();
     };
   }, []);
 
@@ -1017,6 +1040,7 @@ function App() {
                       type="button"
                       onClick={() => {
                         setPermissionMode(mode.id);
+                        localStorage.setItem('permission_mode', mode.id);
                         setShowModeDropdown(false);
                       }}
                     >
@@ -1042,6 +1066,20 @@ function App() {
               </div>
             )}
           </div>
+
+          {/* Счётчик потраченных токенов справа от Never Ask */}
+          {spentTokens > 0 && (
+            <div
+              className="spent-tokens-badge"
+              title={`Потрачено за сессию агента: ${spentTokens.toLocaleString()} токенов`}
+            >
+              <span className="spent-tokens-icon">⚡</span>
+              <span className="spent-tokens-label">Потрачено:</span>
+              <span className="spent-tokens-val">
+                {spentTokens >= 1000 ? `${(spentTokens / 1000).toFixed(1)}k` : spentTokens}
+              </span>
+            </div>
+          )}
         </div>
         <div className="model-controls-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           <div className="model-dropdown-container" ref={modelDropdownRef}>
@@ -1461,74 +1499,13 @@ function App() {
               </div>
             </div>
 
-            <div className="right-sidebar-body">
-              <div className="right-sidebar-shortcuts">
-                <div className="right-shortcut-row" onClick={() => { if (sidebarTab !== 'Code') setSidebarTab('Code'); }}>
-                  <div className="shortcut-label-group">
-                    <GitBranchIcon />
-                    <span>Changes</span>
-                  </div>
-                  <div className="shortcut-keys-group">
-                    <kbd>Ctrl</kbd>
-                    <kbd>Shift</kbd>
-                    <kbd>G</kbd>
-                  </div>
-                </div>
-
-                <div className="right-shortcut-row" onClick={() => handleNewChat()}>
-                  <div className="shortcut-label-group">
-                    <BrowserIcon />
-                    <span>Browser</span>
-                  </div>
-                  <div className="shortcut-keys-group">
-                    <kbd>Ctrl</kbd>
-                    <kbd>T</kbd>
-                  </div>
-                </div>
-
-                <div className="right-shortcut-row" onClick={() => {
-                  if (!showTerminal && sidebarTab !== 'Code') {
-                    setSidebarTab('Code');
-                    localStorage.setItem('sidebarActiveTab', 'Code');
-                  }
-                  setShowTerminal(v => !v);
-                }}>
-                  <div className="shortcut-label-group">
-                    <TerminalPromptIcon />
-                    <span>Terminal</span>
-                  </div>
-                  <div className="shortcut-keys-group">
-                    <kbd>Ctrl</kbd>
-                    <kbd>`</kbd>
-                  </div>
-                </div>
-
-                <div className="right-shortcut-row" onClick={handleOpenFolder}>
-                  <div className="shortcut-label-group">
-                    <FolderIcon />
-                    <span>Files</span>
-                  </div>
-                  <div className="shortcut-keys-group">
-                    <kbd>Shift</kbd>
-                    <kbd>Ctrl</kbd>
-                    <kbd>E</kbd>
-                  </div>
-                </div>
-
-                <div className="right-shortcut-row" onClick={() => {
-                  document.querySelector<HTMLTextAreaElement>('.chat-textarea')?.focus();
-                }}>
-                  <div className="shortcut-label-group">
-                    <MessageDotsIcon />
-                    <span>Side Chat</span>
-                  </div>
-                  <div className="shortcut-keys-group">
-                    <kbd>Shift</kbd>
-                    <kbd>Ctrl</kbd>
-                    <kbd>B</kbd>
-                  </div>
-                </div>
-              </div>
+                        <div className="right-sidebar-body agent-panel-body">
+              <AgentChat
+                apiKey={apiKey}
+                workspace={selectedFolder?.path ?? ''}
+                workspaceName={selectedFolder?.name ?? ''}
+                permissionMode={permissionMode}
+              />
             </div>
           </aside>
         )}

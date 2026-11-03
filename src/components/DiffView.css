@@ -1,0 +1,163 @@
+/* DiffView.css — unified diff visualization */
+
+.diff-view {
+  border-radius: 6px;
+  border: 1px solid #1e1e1e;
+  overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: 'Consolas', 'Cascadia Code', 'Fira Code', monospace;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* ─── Заголовок ──────────────────────────────────────────────────────────── */
+
+.diff-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: #0f0f0f;
+  border-bottom: 1px solid #1e1e1e;
+  min-height: 28px;
+}
+
+.diff-filename {
+  font-size: 11.5px;
+  color: #888;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.diff-stats {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.diff-stat {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.diff-stat.added   { color: #4ade80; background: #0a1f0a; }
+.diff-stat.removed { color: #f87171; background: #1f0a0a; }
+
+.diff-header-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.diff-toggle-btn,
+.diff-copy-btn {
+  background: none;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  color: #666;
+  font-size: 10.5px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.diff-toggle-btn:hover { color: #aaa; border-color: #444; }
+.diff-copy-btn:hover   { color: #aaa; border-color: #444; }
+.diff-copy-btn.copied  { color: #4ade80; border-color: #2a5a2a; background: #0a1f0a; }
+
+/* ─── Тело diff ──────────────────────────────────────────────────────────── */
+
+.diff-body {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 380px;
+  background: #0a0a0a;
+}
+
+/* ─── Строка diff ────────────────────────────────────────────────────────── */
+
+.diff-line {
+  display: flex;
+  align-items: baseline;
+  min-width: max-content;
+}
+
+.diff-line-equal   { background: transparent; }
+.diff-line-added   { background: #091a09; }
+.diff-line-removed { background: #1a0909; }
+
+/* hover */
+.diff-line:hover { filter: brightness(1.15); }
+
+/* Номера строк */
+.diff-gutter {
+  flex-shrink: 0;
+  width: 36px;
+  text-align: right;
+  padding: 0 6px;
+  color: #2e2e2e;
+  user-select: none;
+  border-right: 1px solid #141414;
+}
+.diff-gutter-old { background: #080808; }
+.diff-gutter-new { background: #090909; }
+
+.diff-line-added   .diff-gutter { color: #1e4a1e; }
+.diff-line-removed .diff-gutter { color: #4a1e1e; }
+
+/* Знак +/−/пробел */
+.diff-sign {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  user-select: none;
+  font-weight: 700;
+  color: #2e2e2e;
+  border-right: 1px solid #141414;
+}
+
+.diff-line-added   .diff-sign { color: #3a8a3a; }
+.diff-line-removed .diff-sign { color: #8a3a3a; }
+
+/* Текст строки */
+.diff-text {
+  flex: 1;
+  padding: 0 10px;
+  color: #a0a0a8;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.diff-line-added   .diff-text { color: #86efac; }
+.diff-line-removed .diff-text { color: #fca5a5; }
+
+/* ─── Fold ───────────────────────────────────────────────────────────────── */
+
+.diff-fold {
+  padding: 3px 10px 3px 98px;
+  color: #2a4a6a;
+  font-size: 10.5px;
+  background: #080c10;
+  border-top: 1px solid #0e1520;
+  border-bottom: 1px solid #0e1520;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.12s, background 0.12s;
+}
+.diff-fold:hover { color: #4a8aba; background: #0a1218; }
+
+/* ─── Пусто ──────────────────────────────────────────────────────────────── */
+
+.diff-empty {
+  padding: 12px;
+  text-align: center;
+  color: #333;
+  font-size: 11px;
+}
+

@@ -1,0 +1,782 @@
+/* AgentChat.css — стили для AI-агентного чата */
+
+/* ─── Корневой контейнер ──────────────────────────────────────────────────── */
+.agent-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+  font-size: 13px;
+  color: #e4e4e7;
+}
+
+/* ─── Шапка ───────────────────────────────────────────────────────────────── */
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0;
+}
+
+.agent-header-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.agent-workspace-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #666;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 5px;
+  padding: 2px 7px;
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.agent-workspace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.agent-new-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #333;
+  color: #888;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.agent-new-btn:hover {
+  color: #e4e4e7;
+  border-color: #555;
+}
+
+/* ─── Область сообщений ───────────────────────────────────────────────────── */
+.agent-messages {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 12px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+
+.agent-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.agent-messages::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
+}
+
+/* ─── Пустое состояние ────────────────────────────────────────────────────── */
+.agent-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.agent-empty-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.agent-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #d4d4d8;
+}
+
+.agent-empty-sub {
+  font-size: 12px;
+  color: #555;
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+.agent-example-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.agent-example-chip {
+  background: #141414;
+  border: 1px solid #272727;
+  color: #888;
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 11.5px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.agent-example-chip:hover {
+  background: #1a1a1a;
+  border-color: #3d3d3d;
+  color: #c4c4c8;
+}
+
+/* ─── Список элементов ────────────────────────────────────────────────────── */
+.agent-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* ─── Сообщение пользователя ──────────────────────────────────────────────── */
+.agent-user-msg {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.agent-user-text {
+  background: #1d2d1d;
+  border: 1px solid #2d4d2d;
+  color: #c8e6c8;
+  border-radius: 10px 10px 3px 10px;
+  padding: 8px 12px;
+  max-width: 85%;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ─── Сообщение ассистента ────────────────────────────────────────────────── */
+.agent-assistant-msg {
+  background: #141414;
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #d4d4d8;
+}
+
+.agent-assistant-msg p {
+  margin: 0 0 8px;
+}
+
+.agent-assistant-msg p:last-child {
+  margin-bottom: 0;
+}
+
+.agent-assistant-msg code {
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+  color: #93c5fd;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+}
+
+.agent-assistant-msg pre {
+  background: #0f0f0f;
+  border: 1px solid #222;
+  border-radius: 6px;
+  padding: 10px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.agent-assistant-msg pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: #d4d4d8;
+}
+
+/* ─── Tool-блок ───────────────────────────────────────────────────────────── */
+.tool-block {
+  border-radius: 8px;
+  border: 1px solid #252525;
+  background: #111;
+  overflow: hidden;
+  transition: border-color 0.15s;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tool-block.tool-status-running {
+  border-color: #1e3a5f;
+}
+
+.tool-block.tool-status-waiting {
+  border-color: #5c3d00;
+}
+
+.tool-block.tool-status-done {
+  border-color: #1a3a1a;
+}
+
+.tool-block.tool-status-error {
+  border-color: #4a1a1a;
+}
+
+.tool-block.tool-status-denied {
+  border-color: #333;
+}
+
+.tool-block-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: #c4c4c8;
+  font-size: 12.5px;
+  transition: background 0.1s;
+}
+
+.tool-block-header:hover {
+  background: #161616;
+}
+
+.tool-emoji {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.tool-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: #a0a0a8;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.tool-preview {
+  font-size: 12px;
+  color: #666;
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+}
+
+.tool-status-dot {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.tool-expand-icon {
+  font-size: 9px;
+  color: #444;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+/* Спиннер работы */
+.tool-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #333;
+  border-top-color: #4d9fff;
+  border-radius: 50%;
+  animation: tool-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes tool-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Тело блока (раскрытое) */
+.tool-block-body {
+  padding: 8px 10px 10px;
+  border-top: 1px solid #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tool-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #555;
+}
+
+.tool-section-label.error {
+  color: #7a3a3a;
+}
+
+.tool-json {
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 11px;
+  color: #888;
+  background: #0d0d0d;
+  border: 1px solid #1e1e1e;
+  border-radius: 5px;
+  padding: 7px 9px;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.tool-output {
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  font-size: 11px;
+  color: #8ec98e;
+  background: #0a0f0a;
+  border: 1px solid #1a2a1a;
+  border-radius: 5px;
+  padding: 7px 9px;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tool-output.error {
+  color: #d47a7a;
+  background: #0f0a0a;
+  border-color: #2a1a1a;
+}
+
+/* ─── Диалог разрешения ───────────────────────────────────────────────────── */
+.permission-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #221500;
+  border-top: 1px solid #4a3000;
+  border-bottom: 1px solid #4a3000;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.permission-desc {
+  flex: 1;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #fbbf24;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.permission-buttons {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.perm-btn {
+  border: none;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.perm-btn:hover {
+  opacity: 0.9;
+}
+
+.perm-btn.allow {
+  background: #166534;
+  color: #86efac;
+  border: 1px solid #22c55e;
+}
+.perm-btn.allow:hover {
+  background: #15803d;
+  color: #fff;
+}
+
+.perm-btn.deny {
+  background: #371414;
+  color: #fca5a5;
+  border: 1px solid #ef4444;
+}
+.perm-btn.deny:hover {
+  background: #451a1a;
+  color: #fff;
+}
+
+/* ─── Thinking ────────────────────────────────────────────────────────────── */
+.agent-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  color: #555;
+  font-size: 12px;
+}
+
+.agent-thinking-dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.agent-thinking-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #444;
+  animation: thinking-pulse 1.2s ease-in-out infinite;
+}
+
+.agent-thinking-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.agent-thinking-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes thinking-pulse {
+
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.agent-thinking-text {
+  color: #555;
+}
+
+.agent-iter {
+  color: #3a3a3a;
+  font-size: 10px;
+}
+
+/* ─── Ошибка ──────────────────────────────────────────────────────────────── */
+.agent-error-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  background: #160a0a;
+  border: 1px solid #3a1a1a;
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: #c87a7a;
+  line-height: 1.5;
+}
+
+.agent-error-icon {
+  flex-shrink: 0;
+}
+
+/* ─── Статистика ──────────────────────────────────────────────────────────── */
+.agent-stats {
+  text-align: center;
+  font-size: 11px;
+  color: #3a3a3a;
+  padding: 8px 0 2px;
+  border-top: 1px solid #1a1a1a;
+  margin-top: 4px;
+}
+
+/* ─── Инпут ───────────────────────────────────────────────────────────────── */
+.agent-input-area {
+  flex-shrink: 0;
+  padding: 8px 10px 10px;
+  border-top: 1px solid #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.agent-textarea {
+  width: 100%;
+  background: #0f0f0f;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #e4e4e7;
+  font-size: 12.5px;
+  font-family: inherit;
+  padding: 9px 11px;
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  min-height: 60px;
+  max-height: 140px;
+}
+
+.agent-textarea:focus {
+  border-color: #3a3a3a;
+}
+
+.agent-textarea::placeholder {
+  color: #3a3a3a;
+}
+
+.agent-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.agent-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Выбор модели */
+.agent-model-btn {
+  background: #111;
+  border: 1px solid #252525;
+  border-radius: 6px;
+  color: #666;
+  font-size: 11px;
+  padding: 4px 9px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.agent-model-btn:hover:not(:disabled) {
+  color: #999;
+  border-color: #333;
+}
+
+.agent-model-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.agent-model-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 200px;
+  z-index: 100;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.agent-model-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #444;
+  padding: 6px 12px 3px;
+  border-top: 1px solid #1e1e1e;
+}
+
+.agent-model-group-label:first-child {
+  border-top: none;
+}
+
+.agent-model-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 9px 12px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.agent-model-option:hover {
+  background: #1a1a1a;
+}
+
+.agent-model-option.active {
+  background: #1a2a1a;
+}
+
+.agent-model-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c4c4c8;
+}
+
+.agent-model-desc {
+  font-size: 11px;
+  color: #555;
+}
+
+/* Кнопка Stop */
+.agent-stop-btn {
+  margin-left: auto;
+  background: #2a1a1a;
+  border: 1px solid #4a2a2a;
+  color: #c87a7a;
+  border-radius: 7px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.agent-stop-btn:hover {
+  background: #3a1a1a;
+  border-color: #6a2a2a;
+}
+
+/* Кнопка Send */
+.agent-send-btn {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: #1e1e1e;
+  color: #444;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.agent-send-btn.active {
+  background: #1e3a1e;
+  color: #7ec87e;
+  border: 1px solid #2d5a2d;
+}
+
+.agent-send-btn.active:hover {
+  background: #264a26;
+}
+
+.agent-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Phase 4: улучшения ToolBlock ──────────────────────────────────────── */
+
+/* Строка "секция + кнопка copy" */
+.tool-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Кнопка копирования */
+.tool-copy-btn {
+  background: none;
+  border: 1px solid #252525;
+  border-radius: 4px;
+  color: #555;
+  font-size: 11px;
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.tool-copy-btn:hover { color: #aaa; border-color: #444; }
+
+/* Обёртка для output секции */
+.tool-output-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Однострочная аннотация результата в свёрнутом заголовке */
+.tool-result-hint {
+  font-size: 10.5px;
+  color: #3a5a3a;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  max-width: 140px;
+}
+.tool-status-error   .tool-result-hint { color: #5a2a2a; }
+
+/* DiffView внутри tool-block-body */
+.tool-block-body .diff-view {
+  border-color: #1a1a1a;
+}

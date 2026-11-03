@@ -1,3 +1,7 @@
+mod tools;
+mod agent;
+mod llm;
+
 use serde::{Deserialize, Serialize};
 use reqwest::multipart;
 use tokio::fs;
@@ -237,10 +241,16 @@ fn get_user_home_dir() -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(TerminalState::default())
+        .manage(agent::AgentState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![ask_gigachat, upload_file, start_terminal, write_terminal, close_terminal, resize_terminal, get_user_home_dir])
+        .invoke_handler(tauri::generate_handler![
+            ask_gigachat, upload_file, start_terminal, write_terminal, close_terminal, resize_terminal, get_user_home_dir,
+            tools::tool_read_file, tools::tool_write_file, tools::tool_edit_file,
+            tools::tool_run_command, tools::tool_list_dir, tools::tool_grep_files,
+            agent::agent_run, agent::agent_approve, agent::agent_cancel,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
